@@ -1,0 +1,10 @@
+#
+# Requirements for wger for production
+#
+
+# Regular packages
+#-r requirements.txt
+psycopg2-binary
+gunicorn~=20.0
+django-redis
+

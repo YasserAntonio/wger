@@ -18,29 +18,33 @@
 ##########
 # Builder
 ##########
-FROM ubuntu:20.04 as builder
+FROM yasserantonio/wger_base:armv7 as builder
 
 RUN apt-get update \
   && apt-get install --no-install-recommends -y \
       build-essential \
-      python3-dev \
+      python3.8-dev \
       python3-pip \
       python3-wheel \
-      git \
-  && rm -rf /var/lib/apt/lists/*
+      git
+RUN apt-get install  --no-install-recommends -y libtiff-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev xli libpq-dev  # solve pillow build fail and psycopg2-binary
+
+#RUN rm -rf /var/lib/apt/lists/*
 
 # Set up the application
-COPY requirements* ./
-RUN pip3 wheel --no-cache-dir --wheel-dir /usr/src/app/wheels -r requirements_dev.txt
+COPY requirements.txt ./
+RUN pip3 wheel --no-cache-dir --wheel-dir /usr/src/app/wheels -r requirements.txt
+COPY requirements_prod.txt ./
+RUN pip3 wheel --no-cache-dir --wheel-dir /usr/src/app/wheels -r requirements_prod.txt
 
 
 ########
 # Final
 ########
-FROM wger/base:2.0-dev
+FROM yasserantonio/wger_base:armv7 
 LABEL maintainer="Roland Geider <roland@geider.net>"
 
-ARG DOCKER_DIR=./extras/docker/apache
+ARG DOCKER_DIR=.
 EXPOSE 80
 
 
@@ -78,13 +82,24 @@ RUN ln -s /home/wger/static/CACHE /var/www
 USER wger
 
 WORKDIR /home/wger/src
-#RUN git clone https://github.com/wger-project/wger.git
-RUN python3 -m venv /home/wger/venv
+RUN git clone https://github.com/wger-project/wger.git
+RUN python3.8 -m venv /home/wger/venv
 RUN . /home/wger/venv/bin/activate \
     && pip install --upgrade pip \
+    && pip install --upgrade setuptools \
     && pip install wheel \
     && pip install --no-cache /wheels/* \
-    && python setup.py develop \
+    && deactivate
+USER root
+RUN apt-get install sed -y
+USER wger
+
+RUN sed -i "36d" wger/wger/__main__.py
+RUN sed -i "36i     os.chdir('/home/wger/venv/lib/python3.8/site-packages/wger-2.0a2.dev0-py3.8.egg')" wger/wger/__main__.py
+RUN cat wger/wger/__main__.py
+RUN . /home/wger/venv/bin/activate \
+    && cd wger && ls \
+    && python3.8 setup.py install \
     && wger create-settings --database-path /home/wger/db/database.sqlite \
     && wger bootstrap
 
