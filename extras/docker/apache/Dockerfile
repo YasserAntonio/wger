@@ -82,7 +82,7 @@ RUN ln -s /home/wger/static/CACHE /var/www
 USER wger
 
 WORKDIR /home/wger/src
-RUN git clone https://github.com/wger-project/wger.git
+RUN git clone https://github.com/YasserAntonio/wger.git
 RUN python3.8 -m venv /home/wger/venv
 RUN . /home/wger/venv/bin/activate \
     && pip install --upgrade pip \
@@ -90,12 +90,6 @@ RUN . /home/wger/venv/bin/activate \
     && pip install wheel \
     && pip install --no-cache /wheels/* \
     && deactivate
-USER root
-RUN apt-get install sed -y
-USER wger
-
-RUN sed -i "36d" wger/wger/__main__.py
-RUN sed -i "36i     os.chdir('/home/wger/venv/lib/python3.8/site-packages/wger-2.0a2.dev0-py3.8.egg')" wger/wger/__main__.py
 RUN cat wger/wger/__main__.py
 RUN . /home/wger/venv/bin/activate \
     && cd wger && ls \
